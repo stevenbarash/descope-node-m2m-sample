@@ -72,7 +72,7 @@ app.get('/', (req, res) => {
 });
 
 // M2M endpoint: Exchanges the access key for a JWT using Descope SDK
-app.post('/mgmt', async (req, res, next) => {
+app.post('/m2m/token', async (req, res, next) => {
   const reqProjectId = req.body.projectId || projectId;
   const reqAccessKey = req.body.accessKey || accessKey;
   const scopes = req.body.scopes;

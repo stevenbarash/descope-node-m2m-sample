@@ -327,8 +327,8 @@ try {
                     scopes = customScopeInput.value.trim().split(/\s+/).filter(Boolean);
                 }
                 try {
-                    // Send projectId and accessKey to /mgmt
-                    const response = await fetch('/mgmt', {
+                    // Send projectId and accessKey to /m2m/token
+                    const response = await fetch('/m2m/token', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
