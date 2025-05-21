@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Descope M2M Demo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <style>
+        .container { max-width: 800px; }
+        .code-block {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .result-block {
+            min-height: 100px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .jwt-section {
+            margin-top: 20px;
+        }
+        .jwt-raw {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            word-break: break-all;
+            margin-bottom: 20px;
+        }
+        .jwt-decoded {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin-bottom: 20px;
+        }
+        .jwt-section h6 {
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .scope-badge {
+            background: #e9ecef;
+            color: #495057;
+            padding: 5px 10px;
+            border-radius: 15px;
+            margin: 2px;
+            display: inline-block;
+            font-size: 0.85em;
+        }
+        .token-info {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        body.dark-mode {
+            background: #181a1b;
+            color: #e0e0e0;
+        }
+        body.dark-mode .container,
+        body.dark-mode .card,
+        body.dark-mode .result-block,
+        body.dark-mode .jwt-section,
+        body.dark-mode .jwt-raw,
+        body.dark-mode .jwt-decoded {
+            background: #23272b !important;
+            color: #e0e0e0 !important;
+        }
+        body.dark-mode .form-control,
+        body.dark-mode .input-group-text {
+            background: #23272b;
+            color: #e0e0e0;
+            border-color: #444;
+        }
+        body.dark-mode .btn-outline-secondary {
+            color: #e0e0e0;
+            border-color: #444;
+        }
+        body.dark-mode .btn-outline-secondary:hover {
+            background: #444;
+        }
+        body.dark-mode .alert {
+            background: #23272b;
+            color: #ffb3b3;
+            border-color: #ffb3b3;
+        }
+        body.dark-mode .scope-badge {
+            background: #444;
+            color: #e0e0e0;
+        }
+        body.dark-mode pre code {
+            background: #181a1b !important;
+            color: #e0e0e0 !important;
+        }
+        @media (max-width: 576px) {
+            .container { padding: 0 5px; }
+            h1, .card-title { font-size: 1.3rem; }
+            .jwt-section, .result-block, .card { padding: 10px !important; }
+            .input-group, .form-control, .btn { font-size: 1rem; }
+            .mb-4, .mb-3, .mb-2 { margin-bottom: 1rem !important; }
+            .d-flex { flex-direction: column !important; align-items: stretch !important; }
+            .d-flex.align-items-center.justify-content-between { flex-direction: row !important; }
+            .jwt-raw, .jwt-decoded { font-size: 0.9rem; padding: 10px; }
+            .scope-badge { font-size: 0.8em; padding: 4px 8px; }
+        }
+        .important-claim-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 500;
+            border: 1px solid #b3b3b3;
+            margin-right: 4px;
+            margin-bottom: 2px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            background: #e9ecef;
+            color: #495057;
+        }
+        .important-claim-badge.scope { background: #d1e7dd; color: #0f5132; border-color: #badbcc; }
+        .important-claim-badge.role { background: #cfe2ff; color: #084298; border-color: #b6d4fe; }
+        body.dark-mode .important-claim-badge.scope { background: #204030; color: #b6f2d8; border-color: #2e5c47; }
+        body.dark-mode .important-claim-badge.role { background: #1a233a; color: #b6c8f2; border-color: #2a3c5c; }
+        .error-flash {
+            animation: shake 0.4s;
+        }
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            20% { transform: translateX(-8px); }
+            40% { transform: translateX(8px); }
+            60% { transform: translateX(-6px); }
+            80% { transform: translateX(6px); }
+            100% { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="mb-0">Descope M2M Authentication Demo</h1>
+            <button id="darkModeToggle" class="btn btn-outline-secondary" title="Toggle dark mode">
+                <span id="darkModeIcon" class="bi bi-moon"></span>
+            </button>
+        </div>
+        <div class="row g-4 justify-content-center">
+            <!-- Column 1: Credentials & Scopes -->
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card mb-4 h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Credentials & Scopes</h5>
+                        <div class="mb-3">
+                            <h6>Your Project ID:</h6>
+                            <input id="projectIdInput" type="text" class="form-control mb-2" value="<%= projectId %>" autocomplete="off">
+                            <h6>Your Access Key:</h6>
+                            <div class="input-group mb-2">
+                                <input id="accessKeyInput" type="password" class="form-control" value="" placeholder="Enter access key" autocomplete="off">
+                                <button class="btn btn-outline-secondary" type="button" id="toggleAccessKey" tabindex="-1">
+                                    <span id="eyeIcon" class="bi bi-eye"></span>
+                                </button>
+                            </div>
+                            <small class="text-muted">Access key is never shown or stored on the server. Used only for this session.</small>
+                            <div class="mt-3">
+                                <h6>Request Scopes:</h6>
+                                <select id="scopeSelect" class="form-select mb-2" multiple>
+                                    <option value="read:data">read:data</option>
+                                    <option value="write:data">write:data</option>
+                                    <option value="admin">admin</option>
+                                    <option value="user:profile">user:profile</option>
+                                    <option value="custom">Custom...</option>
+                                </select>
+                                <input id="customScopeInput" type="text" class="form-control mb-2 d-none" placeholder="Enter custom scopes (space-separated)">
+                                <small class="text-muted">Hold Ctrl (Windows) or Cmd (Mac) to select multiple. Custom scopes are space-separated.</small>
+                            </div>
+                        </div>
+                        <button id="getToken" class="btn btn-primary">Get M2M Token</button>
+                        <button id="refreshToken" class="btn btn-outline-primary ms-2" type="button" disabled title="Request a new access token using the same credentials and scopes">Get a new token</button>
+                        <div id="errorAlert" class="alert alert-danger d-none mt-3" role="alert"></div>
+                        <small class="text-muted d-block mt-2">In client credentials flow, you always get a new token by re-authenticating. There is no refresh token.</small>
+                    </div>
+                </div>
+            </div>
+            <!-- Column 2: JWT & Actions -->
+            <div class="col-12 col-md-6 col-lg-8">
+                <div class="card mb-4 h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">JWT & Actions</h5>
+                        <div class="result-block mt-3">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h6 class="mb-0">Raw JWT Token:</h6>
+                                <button id="copyJwtBtn" class="btn btn-outline-secondary btn-sm" type="button" title="Copy JWT">
+                                    <span class="bi bi-clipboard"></span>
+                                </button>
+                            </div>
+                            <pre><code class="jwt-raw language-jwt" id="rawToken">Click the button above to get a token</code></pre>
+                            <div id="jwtExpiryCountdown" class="text-end text-muted small mt-1" style="display:none;"></div>
+                            <div id="spinner" class="text-center my-2 d-none">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="jwtSection" class="jwt-section" style="display: none;">
+                            <div class="mb-3">
+                                <button id="tryProtectedApi" class="btn btn-success me-2">Try Protected API</button>
+                                <button id="tryUserApi" class="btn btn-info me-2">Try User API<br><small>(requires <b>read:data</b> scope)</small></button>
+                                <button id="tryAdminApi" class="btn btn-warning">Try Admin API<br><small>(requires <b>admin</b> scope)</small></button>
+                            </div>
+                            <h6>Decoded JWT:</h6>
+                            <div class="jwt-decoded">
+                                <div class="mb-3">
+                                    <strong>Header:</strong>
+                                    <pre><code class="language-json" id="jwtHeader"></code></pre>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Payload:</strong>
+                                    <pre><code class="language-json" id="jwtPayload"></code></pre>
+                                </div>
+                                <div class="token-info">
+                                    <div><strong>Issued At:</strong> <span id="jwtIat"></span></div>
+                                    <div><strong>Expires At:</strong> <span id="jwtExp"></span></div>
+                                    <div><strong>Subject:</strong> <span id="jwtSub"></span></div>
+                                </div>
+                                <div id="importantClaims" class="mb-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Column 3: API Results & Docs -->
+            <div class="col-12 col-md-12 col-lg-12">
+                <div class="card mb-4 h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">API Results</h5>
+                        <div id="protectedApiResult" class="mt-3" style="display:none;"></div>
+                        <div id="userApiResult" class="mt-3" style="display:none;"></div>
+                        <div id="adminApiResult" class="mt-3" style="display:none;"></div>
+                        <hr>
+                        <h5 class="card-title mt-4">How it works</h5>
+                        <p class="card-text">
+                            1. The server uses the access key to authenticate with Descope<br>
+                            2. Upon successful authentication, a JWT token is returned<br>
+                            3. This token can be used to authorize your own backend or API calls, or to access Descope management APIs as needed
+                        </p>
+                        <p>
+                            <a href="https://docs.descope.com/management/m2m-access-keys/sdks#exchange-access-keys" target="_blank" rel="noopener">More details here</a>
+                        </p>
+                        <pre><code class="language-js code-block">import DescopeClient from '@descope/node-sdk';
+ 
+const managementKey = "xxxx"
+ 
+try{
+    const descopeClient = DescopeClient({ projectId: 'xxxx', managementKey: managementKey });
+} catch (error) {
+    console.log("failed to initialize: " + error)
+}
+ 
+
+const accessKey = "xxxx"
+const loginOptions = {customClaims: {"key":"value"}}
+ 
+try {
+    const authInfo = await descopeClient.exchangeAccessKey(mykey, loginOptions);
+    console.log(`Exchanged access key for JWT: ${authInfo.jwt}`);
+} catch (err) {
+    console.log(`Failed to exchange access key: ${err}`);
+}
+</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/javascript.min.js"></script>
+    <!-- Bootstrap Icons for eye button -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Eye button toggles access key visibility
+            const accessKeyInput = document.getElementById('accessKeyInput');
+            const toggleAccessKey = document.getElementById('toggleAccessKey');
+            const eyeIcon = document.getElementById('eyeIcon');
+            let accessKeyVisible = false;
+            toggleAccessKey.addEventListener('click', function() {
+                accessKeyVisible = !accessKeyVisible;
+                accessKeyInput.type = accessKeyVisible ? 'text' : 'password';
+                eyeIcon.className = accessKeyVisible ? 'bi bi-eye-slash' : 'bi bi-eye';
+            });
+
+            document.getElementById('getToken').addEventListener('click', async () => {
+                await acquireToken();
+            });
+
+            document.getElementById('refreshToken').addEventListener('click', async () => {
+                await acquireToken(true);
+            });
+
+            async function acquireToken(isRefresh = false) {
+                const rawTokenElement = document.getElementById('rawToken');
+                const jwtSection = document.getElementById('jwtSection');
+                const errorAlert = document.getElementById('errorAlert');
+                const spinner = document.getElementById('spinner');
+                const expiryCountdown = document.getElementById('jwtExpiryCountdown');
+                // Hide error, show spinner
+                errorAlert.classList.add('d-none');
+                spinner.classList.remove('d-none');
+                rawTokenElement.textContent = isRefresh ? 'Refreshing...' : 'Loading...';
+                jwtSection.style.display = 'none';
+                expiryCountdown.style.display = 'none';
+                // Get current values from input fields
+                const projectId = document.getElementById('projectIdInput').value;
+                const accessKey = document.getElementById('accessKeyInput').value;
+                // Get selected scopes
+                const scopeSelect = document.getElementById('scopeSelect');
+                const customScopeInput = document.getElementById('customScopeInput');
+                let scopes = Array.from(scopeSelect.selectedOptions).map(opt => opt.value);
+                if (scopes.includes('custom')) {
+                    // Use custom scopes from input
+                    scopes = customScopeInput.value.trim().split(/\s+/).filter(Boolean);
+                }
+                try {
+                    // Send projectId and accessKey to /mgmt
+                    const response = await fetch('/mgmt', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ projectId, accessKey, scopes })
+                    });
+                    const data = await response.json();
+                    spinner.classList.add('d-none');
+                    if (data.success && data.jwt) {
+                        // Display raw token
+                        rawTokenElement.textContent = data.jwt;
+                        hljs.highlightElement(rawTokenElement);
+                        // Use decoded header and payload from server
+                        const headerElem = document.getElementById('jwtHeader');
+                        const payloadElem = document.getElementById('jwtPayload');
+                        headerElem.textContent = JSON.stringify(data.decodedHeader, null, 2);
+                        payloadElem.textContent = JSON.stringify(data.decodedPayload, null, 2);
+                        // Update token info
+                        document.getElementById('jwtIat').textContent = data.decodedPayload.iat ? new Date(data.decodedPayload.iat * 1000).toLocaleString() : '';
+                        document.getElementById('jwtExp').textContent = data.decodedPayload.exp ? new Date(data.decodedPayload.exp * 1000).toLocaleString() : '';
+                        document.getElementById('jwtSub').textContent = data.decodedPayload.sub || '';
+                        // Highlight important claims (scope, scopes, role, roles)
+                        const importantClaimsDiv = document.getElementById('importantClaims');
+                        importantClaimsDiv.innerHTML = '';
+                        const payload = data.decodedPayload;
+                        const important = [];
+                        if (payload.scope) {
+                            const scopes = Array.isArray(payload.scope) ? payload.scope : String(payload.scope).split(' ');
+                            important.push(...scopes.map(s => `<span class=\"important-claim-badge scope\"><i class='bi bi-shield-lock'></i> ${s}</span>`));
+                        }
+                        if (payload.scopes) {
+                            const scopes = Array.isArray(payload.scopes) ? payload.scopes : String(payload.scopes).split(' ');
+                            important.push(...scopes.map(s => `<span class=\"important-claim-badge scope\"><i class='bi bi-shield-lock'></i> ${s}</span>`));
+                        }
+                        if (payload.role) {
+                            const roles = Array.isArray(payload.role) ? payload.role : [payload.role];
+                            important.push(...roles.map(r => `<span class=\"important-claim-badge role\"><i class='bi bi-person-badge'></i> ${r}</span>`));
+                        }
+                        if (payload.roles) {
+                            const roles = Array.isArray(payload.roles) ? payload.roles : [payload.roles];
+                            important.push(...roles.map(r => `<span class=\"important-claim-badge role\"><i class='bi bi-person-badge'></i> ${r}</span>`));
+                        }
+                        if (important.length > 0) {
+                            importantClaimsDiv.innerHTML = `<strong>Important Claims:</strong> ${important.join(' ')}`;
+                        }
+                        // Apply syntax highlighting
+                        [headerElem, payloadElem].forEach((block) => {
+                            hljs.highlightElement(block);
+                        });
+                        // Show the JWT section
+                        jwtSection.style.display = 'block';
+                        // Reset protected API result
+                        document.getElementById('protectedApiResult').style.display = 'none';
+                        document.getElementById('protectedApiResult').textContent = '';
+                        // Store JWT for protected API call
+                        jwtSection.dataset.jwt = data.jwt;
+                        // JWT Expiry Countdown
+                        if (data.decodedPayload.exp) {
+                            startJwtExpiryCountdown(data.decodedPayload.exp);
+                        }
+                        // Enable refresh button
+                        document.getElementById('refreshToken').disabled = false;
+                    } else {
+                        rawTokenElement.textContent = `Error: ${data.error || 'No JWT received'}`;
+                        hljs.highlightElement(rawTokenElement);
+                        showError(data.error || 'No JWT received');
+                        document.getElementById('refreshToken').disabled = true;
+                    }
+                } catch (error) {
+                    spinner.classList.add('d-none');
+                    console.error('Fetch error:', error);
+                    rawTokenElement.textContent = `Error: ${error.message}`;
+                    hljs.highlightElement(rawTokenElement);
+                    showError(error.message);
+                    document.getElementById('refreshToken').disabled = true;
+                }
+            }
+
+            // Try Protected API button
+            document.getElementById('tryProtectedApi').addEventListener('click', async () => {
+                // Hide other result boxes
+                document.getElementById('userApiResult').style.display = 'none';
+                document.getElementById('adminApiResult').style.display = 'none';
+                const jwtSection = document.getElementById('jwtSection');
+                const jwt = jwtSection.dataset.jwt;
+                const resultDiv = document.getElementById('protectedApiResult');
+                resultDiv.style.display = 'block';
+                resultDiv.textContent = 'Calling protected API...';
+                try {
+                    const response = await fetch('/api/protected', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${jwt}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        resultDiv.innerHTML = `<div class='alert alert-success'>${data.message}</div><pre><code class='language-json'>${JSON.stringify(data.claims, null, 2)}</code></pre>`;
+                        resultDiv.querySelectorAll('pre code').forEach((block) => {
+                            hljs.highlightElement(block);
+                        });
+                    } else {
+                        showApiError(resultDiv, data.error);
+                    }
+                } catch (err) {
+                    showApiError(resultDiv, 'Error calling protected API');
+                }
+            });
+
+            // Try User API button
+            document.getElementById('tryUserApi').addEventListener('click', async () => {
+                const jwtSection = document.getElementById('jwtSection');
+                const jwt = jwtSection.dataset.jwt;
+                const resultDiv = document.getElementById('userApiResult');
+                resultDiv.style.display = 'block';
+                resultDiv.textContent = 'Calling user API...';
+                try {
+                    const response = await fetch('/api/user', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${jwt}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        resultDiv.innerHTML = `<div class='alert alert-success'>${data.message}</div><pre><code class='language-json'>${JSON.stringify(data.claims, null, 2)}</code></pre>`;
+                        resultDiv.querySelectorAll('pre code').forEach((block) => {
+                            hljs.highlightElement(block);
+                        });
+                    } else {
+                        showApiError(resultDiv, data.error);
+                    }
+                } catch (err) {
+                    showApiError(resultDiv, 'Error calling user API');
+                }
+            });
+
+            // Try Admin API button
+            document.getElementById('tryAdminApi').addEventListener('click', async () => {
+                const jwtSection = document.getElementById('jwtSection');
+                const jwt = jwtSection.dataset.jwt;
+                const resultDiv = document.getElementById('adminApiResult');
+                resultDiv.style.display = 'block';
+                resultDiv.textContent = 'Calling admin API...';
+                try {
+                    const response = await fetch('/api/admin', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${jwt}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        resultDiv.innerHTML = `<div class='alert alert-success'>${data.message}</div><pre><code class='language-json'>${JSON.stringify(data.claims, null, 2)}</code></pre>`;
+                        resultDiv.querySelectorAll('pre code').forEach((block) => {
+                            hljs.highlightElement(block);
+                        });
+                    } else {
+                        showApiError(resultDiv, data.error);
+                    }
+                } catch (err) {
+                    showApiError(resultDiv, 'Error calling admin API');
+                }
+            });
+
+            // Highlight the sample code block
+            document.querySelectorAll('pre code.language-js').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+
+            // Copy to Clipboard functionality
+            document.getElementById('copyJwtBtn').addEventListener('click', function() {
+                const jwt = document.getElementById('rawToken').textContent;
+                if (jwt && jwt !== 'Click the button above to get a token' && !jwt.startsWith('Error:')) {
+                    navigator.clipboard.writeText(jwt).then(() => {
+                        showCopyFeedback();
+                    });
+                }
+            });
+            function showCopyFeedback() {
+                const btn = document.getElementById('copyJwtBtn');
+                const original = btn.innerHTML;
+                btn.innerHTML = '<span class="bi bi-clipboard-check"></span>';
+                setTimeout(() => { btn.innerHTML = original; }, 1200);
+            }
+            // Error alert helper
+            function showError(msg) {
+                const errorAlert = document.getElementById('errorAlert');
+                errorAlert.textContent = msg;
+                errorAlert.classList.remove('d-none');
+            }
+            // JWT Expiry Countdown
+            let expiryInterval = null;
+            function startJwtExpiryCountdown(exp) {
+                const expiryCountdown = document.getElementById('jwtExpiryCountdown');
+                if (expiryInterval) clearInterval(expiryInterval);
+                function updateCountdown() {
+                    const now = Math.floor(Date.now() / 1000);
+                    const secondsLeft = exp - now;
+                    if (secondsLeft <= 0) {
+                        expiryCountdown.textContent = 'Token expired';
+                        expiryCountdown.classList.add('text-danger');
+                        clearInterval(expiryInterval);
+                        document.getElementById('refreshToken').disabled = false;
+                    } else if (secondsLeft <= 10) {
+                        expiryCountdown.textContent = 'Expires in ' + formatDuration(secondsLeft) + ' (auto-refreshing...)';
+                        expiryCountdown.classList.add('text-warning');
+                        document.getElementById('refreshToken').disabled = false;
+                        // Auto-refresh if not already refreshing
+                        if (!expiryCountdown.dataset.refreshing) {
+                            expiryCountdown.dataset.refreshing = '1';
+                            setTimeout(async () => {
+                                await acquireToken(true);
+                                expiryCountdown.dataset.refreshing = '';
+                            }, 1000);
+                        }
+                    } else {
+                        expiryCountdown.textContent = 'Expires in ' + formatDuration(secondsLeft);
+                        expiryCountdown.classList.remove('text-danger');
+                        expiryCountdown.classList.remove('text-warning');
+                        document.getElementById('refreshToken').disabled = true;
+                        expiryCountdown.dataset.refreshing = '';
+                    }
+                }
+                expiryCountdown.style.display = 'block';
+                updateCountdown();
+                expiryInterval = setInterval(updateCountdown, 1000);
+            }
+            function formatDuration(seconds) {
+                const m = Math.floor(seconds / 60);
+                const s = seconds % 60;
+                return m > 0 ? `${m}m ${s}s` : `${s}s`;
+            }
+
+            // Dark mode toggle logic
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            const darkModeIcon = document.getElementById('darkModeIcon');
+            function setDarkMode(enabled) {
+                if (enabled) {
+                    document.body.classList.add('dark-mode');
+                    darkModeIcon.className = 'bi bi-brightness-high';
+                } else {
+                    document.body.classList.remove('dark-mode');
+                    darkModeIcon.className = 'bi bi-moon';
+                }
+                localStorage.setItem('darkMode', enabled ? '1' : '0');
+            }
+            // Load preference
+            const darkPref = localStorage.getItem('darkMode');
+            setDarkMode(darkPref === '1');
+            darkModeToggle.addEventListener('click', function() {
+                setDarkMode(!document.body.classList.contains('dark-mode'));
+            });
+
+            // Scope select logic
+            const scopeSelect = document.getElementById('scopeSelect');
+            const customScopeInput = document.getElementById('customScopeInput');
+            scopeSelect.addEventListener('change', function() {
+                const selected = Array.from(scopeSelect.selectedOptions).map(opt => opt.value);
+                if (selected.includes('custom')) {
+                    customScopeInput.classList.remove('d-none');
+                } else {
+                    customScopeInput.classList.add('d-none');
+                    customScopeInput.value = '';
+                }
+            });
+
+            // Helper to show error with animation and auto-hide
+            function showApiError(resultDiv, message) {
+                resultDiv.innerHTML = `<div class='alert alert-danger error-flash'>${message}</div>`;
+                resultDiv.style.display = 'block';
+                // Remove and re-add the animation class to re-trigger
+                const alertDiv = resultDiv.querySelector('.alert');
+                alertDiv.classList.remove('error-flash');
+                // Force reflow
+                void alertDiv.offsetWidth;
+                alertDiv.classList.add('error-flash');
+                // Auto-hide after 4s unless a new error comes in
+                if (resultDiv._hideTimeout) clearTimeout(resultDiv._hideTimeout);
+                resultDiv._hideTimeout = setTimeout(() => {
+                    resultDiv.style.display = 'none';
+                }, 4000);
+            }
+        });
+    </script>
+</body>
+</html> 
