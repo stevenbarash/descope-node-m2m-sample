@@ -143,8 +143,11 @@ app.post('/api/user', async (req, res, next) => {
       });
     });
     const decoded = await verifyJwt(token);
-    // Check for 'read:data' scope
+    // Debug logs
+    console.log('Decoded JWT:', JSON.stringify(decoded, null, 2));
     const scopes = extractScopes(decoded);
+    console.log('Extracted scopes:', scopes);
+    // Check for 'read:data' scope
     if (!scopes.includes('read:data')) {
       return res.status(403).json({ success: false, error: "Missing required scope: 'read:data'" });
     }
@@ -185,13 +188,22 @@ app.post('/api/admin', async (req, res, next) => {
 // Helper to extract scopes from JWT claims
 function extractScopes(decoded) {
   let scopes = [];
+  // Old locations (for backward compatibility)
   if (decoded.scope) {
-    if (Array.isArray(decoded.scope)) scopes = decoded.scope;
-    else if (typeof decoded.scope === 'string') scopes = decoded.scope.split(' ');
+    if (Array.isArray(decoded.scope)) scopes = scopes.concat(decoded.scope);
+    else if (typeof decoded.scope === 'string') scopes = scopes.concat(decoded.scope.split(' '));
   }
   if (decoded.scopes) {
     if (Array.isArray(decoded.scopes)) scopes = scopes.concat(decoded.scopes);
     else if (typeof decoded.scopes === 'string') scopes = scopes.concat(decoded.scopes.split(' '));
+  }
+  // New location: tenants.{tenant}.permissions
+  if (decoded.tenants && typeof decoded.tenants === 'object') {
+    for (const tenant of Object.values(decoded.tenants)) {
+      if (tenant.permissions && Array.isArray(tenant.permissions)) {
+        scopes = scopes.concat(tenant.permissions);
+      }
+    }
   }
   return Array.from(new Set(scopes));
 }

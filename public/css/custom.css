@@ -1,0 +1,89 @@
+/* Custom styles for Descope M2M Demo */
+
+.container {
+  max-width: 800px;
+}
+
+.code-block {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 5px;
+  font-family: monospace;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+.result-block {
+  min-height: 100px;
+  border: 1px solid #dee2e6;
+  border-radius: 5px;
+  padding: 15px;
+  margin-top: 20px;
+  background: #fff;
+}
+
+.jwt-section {
+  margin-top: 20px;
+}
+
+.jwt-raw, .jwt-decoded {
+  background: #282c34;
+  color: #abb2bf;
+  padding: 15px;
+  border-radius: 5px;
+  font-family: monospace;
+  margin-bottom: 20px;
+  word-break: break-all;
+}
+
+.jwt-section h6 {
+  color: #666;
+  margin-bottom: 10px;
+}
+
+.scope-badge {
+  background: #e9ecef;
+  color: #333;
+  border-radius: 12px;
+  padding: 2px 10px;
+  margin-right: 5px;
+  font-size: 0.9em;
+}
+
+.btn-primary, .btn-success, .btn-danger {
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.btn-primary:hover, .btn-success:hover, .btn-danger:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  filter: brightness(1.08);
+}
+
+input, textarea, select {
+  border-radius: 5px !important;
+  border: 1px solid #ced4da;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+}
+
+label {
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 10px;
+    max-width: 100%;
+  }
+  .code-block, .result-block, .jwt-raw, .jwt-decoded {
+    padding: 10px;
+    font-size: 0.95em;
+  }
+}
+
+/* Accessibility: focus styles */
+button:focus, input:focus, select:focus, textarea:focus {
+  outline: 2px solid #0d6efd;
+  outline-offset: 2px;
+}
